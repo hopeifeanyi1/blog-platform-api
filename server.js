@@ -1,28 +1,37 @@
 require('dotenv').config();
-const fastify = require('fastify')({ logger: true });
-const path = require('path');
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
 
-// MongoDB plugin
-fastify.register(require('fastify-mongodb'), {
-  forceClose: true,
-  url: process.env.MONGO_URI,
+const app = express();
+
+// Middleware for parsing JSON request bodies
+app.use(bodyParser.json());
+
+// MongoDB Connection
+const mongoUri = `mongodb+srv://${process.env.NAME}:${process.env.PASSWORD}@${process.env.DB_CLUSTER}/${process.env.DB_NAME}?retryWrites=true&w=majority`;
+
+mongoose
+  .connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => {
+    console.log('Connected to MongoDB successfully');
+  })
+  .catch((err) => {
+    console.error('Error connecting to MongoDB:', err.message);
+  });
+
+// Routes
+const articleRoutes = require('./routes/articles');
+app.use('/api/articles', articleRoutes); // Mount the article routes
+
+// Add Error-Handling Middleware Here
+app.use((err, req, res, next) => {
+  console.error(err.stack); // Log the error stack for debugging
+  res.status(500).json({ error: 'Internal Server Error' }); // Send a generic error response
 });
 
-// Import Routes
-const articleRoutes = require('./routes/articles');
-
-// Register Routes
-fastify.register(articleRoutes);
-
 // Start the Server
-const start = async () => {
-  try {
-    await fastify.listen({ port: 3000, host: '0.0.0.0' });
-    console.log(`Server running on http://localhost:3000`);
-  } catch (err) {
-    fastify.log.error(err);
-    process.exit(1);
-  }
-};
-
-start();
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

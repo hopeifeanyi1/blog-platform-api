@@ -1,64 +1,30 @@
-const { getArticleCollection } = require('../models/articleModel');
+const express = require('express');
+const router = express.Router();
 
-async function articleRoutes(fastify) {
-  const articles = getArticleCollection(fastify);
+// Example article routes
+router.get('/', (req, res) => {
+  res.json({ message: 'Get all articles' });
+});
 
-  // Get All Articles
-  fastify.get('/articles', async (request, reply) => {
-    const { tag, date } = request.query;
-    const query = {};
-    if (tag) query.tags = tag;
-    if (date) query.publishedAt = { $gte: new Date(date) };
+router.post('/', (req, res) => {
+  const article = req.body; // Access the article data from the request body
+  res.json({ message: 'Create a new article', article });
+});
 
-    const result = await articles.find(query).toArray();
-    return result;
-  });
+router.get('/:id', (req, res) => {
+  const articleId = req.params.id;
+  res.json({ message: `Get article with ID: ${articleId}` });
+});
 
-  // Get Single Article
-  fastify.get('/articles/:id', async (request, reply) => {
-    const { id } = request.params;
-    const article = await articles.findOne({ _id: fastify.mongo.ObjectId(id) });
-    if (!article) return reply.status(404).send({ message: 'Article not found' });
-    return article;
-  });
+router.put('/:id', (req, res) => {
+  const articleId = req.params.id;
+  const updatedData = req.body;
+  res.json({ message: `Update article with ID: ${articleId}`, updatedData });
+});
 
-  // Create New Article
-  fastify.post('/articles', async (request, reply) => {
-    const { title, content, tags } = request.body;
-    const result = await articles.insertOne({
-      title,
-      content,
-      tags,
-      publishedAt: new Date(),
-    });
-    return { _id: result.insertedId };
-  });
+router.delete('/:id', (req, res) => {
+  const articleId = req.params.id;
+  res.json({ message: `Delete article with ID: ${articleId}` });
+});
 
-  // Update an Article
-  fastify.put('/articles/:id', async (request, reply) => {
-    const { id } = request.params;
-    const { title, content, tags } = request.body;
-
-    const result = await articles.updateOne(
-      { _id: fastify.mongo.ObjectId(id) },
-      { $set: { title, content, tags, updatedAt: new Date() } }
-    );
-
-    if (result.matchedCount === 0)
-      return reply.status(404).send({ message: 'Article not found' });
-
-    return { message: 'Article updated successfully' };
-  });
-
-  // Delete an Article
-  fastify.delete('/articles/:id', async (request, reply) => {
-    const { id } = request.params;
-    const result = await articles.deleteOne({ _id: fastify.mongo.ObjectId(id) });
-    if (result.deletedCount === 0)
-      return reply.status(404).send({ message: 'Article not found' });
-
-    return { message: 'Article deleted successfully' };
-  });
-}
-
-module.exports = articleRoutes;
+module.exports = router;
